@@ -1145,6 +1145,16 @@ public abstract class Service implements Runnable, Serializable, ServiceInterfac
       // wrong Service - get the correct one
       return Runtime.getService(msg.getName()).invoke(msg);
     }
+    
+    // 2020-11-01 - added decoding for cli text/plain
+    // a msg has reached its intended target - now we 
+    // inspect its datatype to properly decode it
+    if ("text/plain".equals(msg.getEncoding())) {
+      MethodCache cache = MethodCache.getInstance();
+      Class<?> clazz = Runtime.getClass(msg.getName());
+      Object[] params = cache.getDecodedJsonParameters(clazz, msg.method, msg.data);
+      msg.data = params;
+    }
 
     retobj = invokeOn(false, this, msg.method, msg.data);
 

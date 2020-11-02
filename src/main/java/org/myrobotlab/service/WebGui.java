@@ -217,7 +217,7 @@ public class WebGui extends Service implements AuthorizationProvider, Gateway, H
   // just marking as transient to remove some of the data load 10240 max frame
   transient Map<String, Panel> panels = new HashMap<String, Panel>();
 
-  public Integer port;
+  public int port = 8888;
 
   public String root = "root";
 
@@ -565,7 +565,7 @@ public class WebGui extends Service implements AuthorizationProvider, Gateway, H
         log.debug("-->{} {} {} - [{}] from connection {}", (newPersistentConnection == true) ? "new" : "", request.getMethod(), request.getRequestURI(), logData, uuid);
       }
 
-      MethodCache cache = MethodCache.getInstance();
+      //MethodCache cache = MethodCache.getInstance();
 
       // important persistent connections will have associated routes ...
       // http/api/service requests (not persistent connections) will not
@@ -591,14 +591,14 @@ public class WebGui extends Service implements AuthorizationProvider, Gateway, H
         return;
 
       } else if (apiKey.equals(CodecUtils.API_SERVICE)) {
-
+        // URL ENCODING/(text/plain) FROM GET (ONLY !!!)
         Message msg = CodecUtils.cliToMsg(null, getName(), null, r.getRequest().getPathInfo());
 
         if (isLocal(msg)) {
           String serviceName = msg.getFullName();// getName();
-          Class<?> clazz = Runtime.getClass(serviceName);
-          Object[] params = cache.getDecodedJsonParameters(clazz, msg.method, msg.data);
-          msg.data = params;
+          // set encoding - regarding get parameters will always be text/plain
+          // e.g. /service/name/method/p0/p1/...
+          msg.setEncoding("text/plain");
           Object ret = invoke(msg);
           OutputStream out = r.getResponse().getOutputStream();
           out.write(CodecUtils.toJson(ret).getBytes());
@@ -644,7 +644,7 @@ public class WebGui extends Service implements AuthorizationProvider, Gateway, H
           if (clazz == null) {
             log.error("cannot derive local type from service {}", serviceName);
           }
-
+          MethodCache cache = MethodCache.getInstance();
           Object[] params = cache.getDecodedJsonParameters(clazz, msg.method, msg.data);
 
           Method method = cache.getMethod(clazz, msg.method, params);
@@ -904,14 +904,13 @@ public class WebGui extends Service implements AuthorizationProvider, Gateway, H
       public void run() {
         try {
           while (nettosphere != null) {
-            Thread.sleep(500);
+            Thread.sleep(1500);
           }
         } catch (InterruptedException e) {
         }
         _self.start();
       }
     }.start();
-    start();
   }
 
   public boolean save() {
@@ -999,8 +998,9 @@ public class WebGui extends Service implements AuthorizationProvider, Gateway, H
     }
   }
 
-  public void setPort(Integer port) {
+  public int setPort(int port) {
     this.port = port; // restart service ?
+    return port;
   }
 
   public void show(String name) {
@@ -1016,10 +1016,6 @@ public class WebGui extends Service implements AuthorizationProvider, Gateway, H
     try {
 
       log.info("starting webgui service....");
-
-      if (port == null) {
-        port = 8888;
-      }
 
       // Broadcaster b = broadcasterFactory.get();
       // a session "might" be nice - but for now we are stateless
@@ -1179,7 +1175,6 @@ public class WebGui extends Service implements AuthorizationProvider, Gateway, H
       WebGui webgui = (WebGui) Runtime.create("webgui", "WebGui");
       // webgui.setSsl(true);
       webgui.autoStartBrowser(false);
-      webgui.setPort(8888);
       webgui.startService();
       
       boolean done = true;

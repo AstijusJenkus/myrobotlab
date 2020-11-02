@@ -99,7 +99,6 @@ public class Message implements Serializable {
    * the return type data if the message is outbound
    */
   public Object[] data;
-
   public Message() {
     msgId = System.currentTimeMillis();
     name = new String(); // FIXME - allow NULL !
@@ -127,6 +126,14 @@ public class Message implements Serializable {
     } else {
       return name.substring(0, pos);
     }
+  }
+  
+  final public void setEncoding(String encoding) {
+    dataEncoding = encoding;
+  }
+
+  final public String getEncoding() {
+    return dataEncoding;
   }
 
   final public void set(final Message other) {

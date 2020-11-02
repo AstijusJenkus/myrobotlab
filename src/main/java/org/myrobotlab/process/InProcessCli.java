@@ -10,6 +10,7 @@ import java.util.Map;
 import org.myrobotlab.codec.CodecUtils;
 import org.myrobotlab.framework.MRLListener;
 import org.myrobotlab.framework.Message;
+import org.myrobotlab.framework.MethodCache;
 import org.myrobotlab.framework.Registration;
 import org.myrobotlab.framework.Service;
 import org.myrobotlab.framework.interfaces.ServiceInterface;
@@ -265,6 +266,16 @@ public class InProcessCli implements Runnable {
       if (cliMsg == null) {
         cliMsg = cliToMsg(cmd);
       }
+      
+      // attempt to decode parameter types...
+      // the cli only inputs strings - the parameter of strings needs to
+      // be decoded if local invoke 
+      // get class type from registry if available
+      /*
+      MethodCache cache = MethodCache.getInstance();
+      Object[] params = cache.getDecodedJsonParameters(clazz, cliMsg.method, cliMsg.data);
+      cliMsg.data = params;
+      */
 
       // fully address destination
       if (!cliMsg.name.contains("@")) {
@@ -286,17 +297,7 @@ public class InProcessCli implements Runnable {
         return;
       }
 
-      // subscribe - setup subscription
-      // MRLListener listener = new MRLListener(cliMsg.method, name + '@' + id,
-      // CodecUtils.getCallbackTopicName(cliMsg.method));
-      // Message subscription = Message.createMessage(name + '@' + id,
-      // cliMsg.getFullName(), "addListener", listener);
-
       String cliFullName = name + '@' + id;
-
-      /*
-       * if (srcFullName == null) { srcFullName = name + '@' + id; }
-       */
 
       // setup cli subscription
       MRLListener listener = new MRLListener(cliMsg.method, cliFullName, CodecUtils.getCallbackTopicName(cliMsg.method));
@@ -308,6 +309,9 @@ public class InProcessCli implements Runnable {
       // setup NAT - translation
       natTable.put(String.format("%s.%s", cliFullName, CodecUtils.getCallbackTopicName(cliMsg.method)), new NatEntry(srcFullName, cliMsg.method));
 
+      // set encoding on it - all msgs from cli come in with txt encoding
+      cliMsg.setEncoding("text/plain");
+      
       // send command msg
       service.out(cliMsg);
 
