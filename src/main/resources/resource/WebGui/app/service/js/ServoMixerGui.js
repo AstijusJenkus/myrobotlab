@@ -1,4 +1,4 @@
-angular.module('mrlapp.service.ServoMixerGui', []).controller('ServoMixerGuiCtrl', ['$scope', 'mrl', function($scope, mrl) {
+angular.module('mrlapp.service.ServoMixerGui', []).controller('ServoMixerGuiCtrl', ['$scope', 'mrl', '$uibModal', function($scope, mrl, $uibModal) {
     console.info('ServoMixerGuiCtrl')
     var _self = this
     var msg = this.msg
@@ -9,7 +9,8 @@ angular.module('mrlapp.service.ServoMixerGui', []).controller('ServoMixerGuiCtrl
     $scope.poseFiles = []
     $scope.loadedPose = null
     $scope.subPanels = {}
-
+    $scope.newName = null
+    // new name of servo
 
     let panelNames = new Set()
 
@@ -21,7 +22,7 @@ angular.module('mrlapp.service.ServoMixerGui', []).controller('ServoMixerGuiCtrl
             service.currentPose = {}
         } else {
             // replace with service definition
-            $scope.currentPose = service.currentPose    
+            $scope.currentPose = service.currentPose
         }
     }
 
@@ -108,28 +109,58 @@ angular.module('mrlapp.service.ServoMixerGui', []).controller('ServoMixerGuiCtrl
         msg.send('savePose', pose);
     }
 
-
     // this method initializes subPanels when a new service becomes available
     this.onRegistered = function(panel) {
-        if (panelNames.has(panel.displayName)) {
-            $scope.subPanels[panel.displayName] = panel
-        }
+     //   if (panelNames.has(panel.displayName)) {
+            $scope.subPanels[panel.name] = panel
+     //   }
     }
 
     // this method removes subPanels references from released service
     this.onReleased = function(panelName) {
         if (panelNames.has(panelName)) {
-            delete $scope.subPanels[panelName]           
+            delete $scope.subPanels[panelName]
         }
         console.info('here')
     }
 
+   $scope.getShortName = function(name) {
+        if (name.includes('@')) {
+            return name.substring(0, name.indexOf("@"))
+        } else {
+            return name
+        }
+    }
+
+
+    $scope.newServoDialog = function(panelName) {
+
+        var modalInstance = $uibModal.open({
+            templateUrl: 'widget/startServo.html',
+            scope: $scope,
+            controller: function($uibModalInstance) {
+                $scope.ok = function() {
+                    $uibModalInstance.close()
+                }
+                $scope.cancel = function() {
+                    $uibModalInstance.dismiss('cancel')
+                }
+                $scope.addServo = function(name) {
+                    mrl.sendTo('runtime', 'start', name, 'Servo')
+                    $uibModalInstance.close()
+                }
+            }
+        })
+
+        console.info('leaving addServo ' + modalInstance)
+    }
+
     // initialize all services which have panel references in Intro
     let servicePanelList = mrl.getPanelList()
-    for (let index = 0; index < servicePanelList.length; ++index){
+    for (let index = 0; index < servicePanelList.length; ++index) {
         this.onRegistered(servicePanelList[index])
-    }    
-   
+    }
+
     msg.subscribe('getPoseFiles')
     msg.subscribe('listAllServos')
     msg.send('listAllServos')

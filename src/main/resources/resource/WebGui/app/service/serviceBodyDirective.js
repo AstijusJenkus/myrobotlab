@@ -14,6 +14,10 @@ angular.module('mrlapp.service').directive('serviceBody', ['$compile', '$templat
             })
             */
 
+            if (!panel){
+                    return
+            }
+
             scope.panel.notifySizeYChanged = function(height) {
                 elem.css({
                     height: height + 'px'

@@ -9,9 +9,11 @@ import java.io.IOException;
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -162,13 +164,13 @@ public class JMonkeyEngine extends Service implements Gateway, ActionListener, S
 
   boolean fullscreen = false;
 
-  private String guiId;
-
   transient Node guiNode;
 
   transient Map<String, HudText> guiText = new TreeMap<>();
 
   int height = 768;
+  
+  static Set<String> supportedFileTypes = new HashSet<>();
 
   List<Jme3Msg> history = new ArrayList<Jme3Msg>();
 
@@ -241,8 +243,38 @@ public class JMonkeyEngine extends Service implements Gateway, ActionListener, S
     util = new Jme3Util(this);
     analog = new AnalogHandler(this);
     interpolator = new Interpolator(this, util);
-
-    guiId = "jme-" + getName() + "-" + getId();
+    
+    supportedFileTypes.add("j3o");
+    supportedFileTypes.add("j3m");
+    supportedFileTypes.add("j3md");
+    supportedFileTypes.add("j3f");
+    supportedFileTypes.add("meshxml");
+    supportedFileTypes.add("scene");
+    supportedFileTypes.add("mesh.xml");
+    supportedFileTypes.add("obj");
+    supportedFileTypes.add("mtl");
+    supportedFileTypes.add("xbuf");
+    supportedFileTypes.add("fbx");
+    supportedFileTypes.add("gltf");
+    supportedFileTypes.add("bin");
+    supportedFileTypes.add("glb");
+    /* Not sure how these 2d and media files are loaded (not with AWTLoader apparently)
+    supportedFileTypes.add("jpg");
+    supportedFileTypes.add("png");
+    supportedFileTypes.add("gif");
+    supportedFileTypes.add("dds");
+    supportedFileTypes.add("hdr");
+    supportedFileTypes.add("tga");
+    supportedFileTypes.add("pfm");
+    supportedFileTypes.add("bmp");
+    supportedFileTypes.add("ani");
+    supportedFileTypes.add("cur");
+    supportedFileTypes.add("ico");
+    supportedFileTypes.add("fnt");
+    supportedFileTypes.add("wav");
+    supportedFileTypes.add("ogg");
+    */
+    supportedFileTypes.add("json");
 
     // setup the virtual reflection
     // this will "connect" to our mrl instance
@@ -1109,7 +1141,7 @@ public class JMonkeyEngine extends Service implements Gateway, ActionListener, S
   // TODO - must be re-entrant - perhaps even on a schedule ?
   // TODO - removeNode
   public void load(String inFileName) {
-    log.info("load({})", inFileName);
+    // log.info("load({})", inFileName);
 
     try {
 
@@ -1128,7 +1160,17 @@ public class JMonkeyEngine extends Service implements Gateway, ActionListener, S
       String filename = file.getName();
       String ext = getExt(filename);
       String simpleName = getNameNoExt(filename);
+      
+      // supported file types
+      // https://wiki.jmonkeyengine.org/docs/3.3/getting-started/features.html
 
+      if (!supportedFileTypes.contains(ext)) {
+        log.info("ignoring file {}", filename);
+        return;
+      }
+      
+      log.info("loading file {}", filename);
+      
       if (!ext.equals("json")) {
 
         Spatial spatial = assetManager.loadModel(filename);
@@ -2288,7 +2330,7 @@ public class JMonkeyEngine extends Service implements Gateway, ActionListener, S
       LoggingFactory.init("WARN");
 
       Platform.setVirtual(true);
-      Runtime.main(new String[] { "--interactive", "--id", "admin" });
+      // Runtime.main(new String[] { "--from-launcher", "--id", "admin" });
       JMonkeyEngine jme = (JMonkeyEngine) Runtime.start("simulator", "JMonkeyEngine");
 
       jme.addBox("box", 1.0, 1.0, 1.0, "fc8803", true);

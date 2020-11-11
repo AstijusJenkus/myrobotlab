@@ -555,7 +555,7 @@ public class Runtime extends Service implements MessageListener, ServiceLifeCycl
           runtime = new Runtime(RUNTIME_NAME, Platform.getLocalInstance().getId());
 
           // setting the singleton security
-          Security.getInstance();
+          // Security.getInstance();
           runtime.getRepo().addStatusPublisher(runtime);
           FileIO.extractResources();
         }

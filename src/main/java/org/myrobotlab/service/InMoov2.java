@@ -94,44 +94,7 @@ public class InMoov2 extends Service implements TextListener, TextPublisher, Joy
     return true;
   }
 
-  public static void main(String[] args) {
-    try {
 
-      LoggingFactory.init(Level.INFO);
-      Platform.setVirtual(true);
-      Runtime.main(new String[] { "--interactive", "--id", "inmoov" });
-
-      InMoov2 i01 = (InMoov2) Runtime.start("i01", "InMoov2");
-
-      WebGui webgui = (WebGui) Runtime.create("webgui", "WebGui");
-      webgui.autoStartBrowser(false);
-      webgui.startService();
-
-      boolean done = true;
-      if (done) {
-        return;
-      }
-
-      i01.startChatBot();
-
-      i01.startAll("COM3", "COM4");
-      Runtime.start("python", "Python");
-      // Runtime.start("log", "Log");
-
-      /*
-       * OpenCV cv = (OpenCV) Runtime.start("cv", "OpenCV");
-       * cv.setCameraIndex(2);
-       */
-      // i01.startSimulator();
-      /*
-       * Arduino mega = (Arduino) Runtime.start("mega", "Arduino");
-       * mega.connect("/dev/ttyACM0");
-       */
-
-    } catch (Exception e) {
-      log.error("main threw", e);
-    }
-  }
 
   boolean autoStartBrowser = false;
 
@@ -1570,21 +1533,26 @@ public class InMoov2 extends Service implements TextListener, TextPublisher, Joy
 
     jme = (JMonkeyEngine) startPeer("simulator");
 
+    // use is a subscriber instead ...
     isSimulatorActivated = true;
 
-    // adding InMoov2 asset path to the jonkey simulator
-    String assetPath = /* getResourceDir() */ getResourceRoot() + fs + InMoov2.class.getSimpleName();
+    // adding InMoov2 asset path to the jmonkey simulator
+    // String assetPath = /* getResourceDir() */ getResourceRoot() + fs + InMoov2.class.getSimpleName();
+    // InMoov2 is a repo now - needs to be cloned ... getResourceDir "should" return "../InMoov2/resource/InMoov2" in IDE mode and
+    // resource/InMoov2 in jar mode
+    String assetPath = getResourceDir();// + fs + InMoov2.class.getSimpleName();
 
     File check = new File(assetPath);
     log.info("loading assets from {}", assetPath);
     if (!check.exists()) {
-      log.warn("%s does not exist");
+      log.warn("%s does not exist", assetPath);
     }
 
     // disable the frustrating servo events ...
     // Servo.eventsEnabledDefault(false);
     // jme.loadModels(assetPath); not needed - as InMoov2 unzips the model into
     // /resource/JMonkeyEngine/assets
+    jme.loadModels(assetPath);
 
     // ========== gael's calibrations begin ======================
     jme.setRotation(getName() + ".head.jaw", "x");
@@ -2024,6 +1992,52 @@ public class InMoov2 extends Service implements TextListener, TextPublisher, Joy
     }
     if (torso != null) {
       torso.waitTargetPos();
+    }
+  }
+  
+  public static void main(String[] args) {
+    try {
+
+      LoggingFactory.init(Level.INFO);
+      Platform.setVirtual(true);
+      Runtime.main(new String[] { "--from-launcher", "--id", "inmoov" });
+
+      InMoov2 i01 = (InMoov2) Runtime.start("i01", "InMoov2");
+
+      /*
+      WebGui webgui = (WebGui) Runtime.create("webgui", "WebGui");
+      webgui.autoStartBrowser(false);
+      webgui.startService();
+      */
+
+      i01.startSimulator();
+
+      
+      boolean done = true;
+      if (done) {
+        return;
+      }
+
+      i01.startChatBot();
+      
+
+      i01.startAll("COM3", "COM4");
+      Runtime.start("python", "Python");
+      // Runtime.start("log", "Log");
+
+
+      /*
+       * OpenCV cv = (OpenCV) Runtime.start("cv", "OpenCV");
+       * cv.setCameraIndex(2);
+       */
+      // i01.startSimulator();
+      /*
+       * Arduino mega = (Arduino) Runtime.start("mega", "Arduino");
+       * mega.connect("/dev/ttyACM0");
+       */
+
+    } catch (Exception e) {
+      log.error("main threw", e);
     }
   }
 

@@ -457,7 +457,7 @@
   </dependency>
   <dependency>
     <groupId>org.jmonkeyengine</groupId>
-    <artifactId>jme3-lwjgl</artifactId>
+    <artifactId>jme3-lwjgl3</artifactId>
     <version>3.3.2-stable</version>
     <scope>provided</scope>
   </dependency>
@@ -467,6 +467,7 @@
     <version>3.3.2-stable</version>
     <scope>provided</scope>
   </dependency>
+  <!-- 
   <dependency>
     <groupId>org.lwjgl.lwjgl</groupId>
     <artifactId>lwjgl</artifactId>
@@ -480,6 +481,7 @@
     <scope>provided</scope>
     <type>pom</type>
   </dependency>
+   -->
   <dependency>
     <groupId>com.simsilica</groupId>
     <artifactId>lemur</artifactId>
