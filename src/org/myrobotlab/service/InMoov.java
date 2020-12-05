@@ -1,12 +1,9 @@
 package org.myrobotlab.service;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+import java.util.concurrent.Executors;
 
 import org.myrobotlab.framework.Service;
 import org.myrobotlab.framework.ServiceType;
@@ -45,7 +42,7 @@ import com.jme3.system.AppSettings;
  */
 public class InMoov extends Service {
 
-  private static final String GESTURES_DIRECTORY = "gestures";
+  private static final String GESTURES_DIRECTORY = "InMoov\\gestures";
   public String CALIBRATION_FILE = "calibration.py";
 
   private static final long serialVersionUID = 1L;
@@ -112,6 +109,7 @@ public class InMoov extends Service {
   transient public Pid pid;
 
   boolean copyGesture = false;
+  boolean copyGestureRight = false;
   public double openNiShouldersOffset = -50.0;
   public boolean openNiLeftShoulderInverted = true;
   public boolean openNiRightShoulderInverted = true;
@@ -136,6 +134,238 @@ public class InMoov extends Service {
   private boolean mute = false;
 
   public static int attachPauseMs = 100;
+
+  /********************************************************************************************
+   *                      BAIGIAMASIS DARBAS ASTIJUS JENKUS 2020/12/04                        *
+   *******************************************************************************************/
+
+  /**
+   * Turns on kinect gesture copying
+   * and runs writePositionsToFile on a seperate thread.
+   */
+  public void copyGestures() {
+    ProgramAB bot = (ProgramAB) Runtime.getService("chatBot");
+
+    if (!copyGestureRight) {
+      try {
+        copyGestureRight(true);
+        bot.getResponse("COPYING");
+      } catch (Exception e) {
+        log.warn("Exception was thrown while turning on gesture copying");
+        e.printStackTrace();
+        return;
+      }
+
+      Executors.newSingleThreadExecutor().execute(this::writePositionsToFile);
+
+    } else {
+      try {
+        copyGestureRight(false);
+        bot.getResponse("OFF");
+        sleep(1500);
+        rest();
+        bot.getResponse("PREVIEW");
+        previewGesture();
+      } catch (Exception e) {
+        log.warn("Exception while turning off gesture copying");
+        e.printStackTrace();
+      }
+    }
+  }
+
+  /**
+   * Previews generated gesture
+   * from a file called 'positions' in projects root dir.
+   */
+  public void previewGesture() {
+    try (BufferedReader reader = new BufferedReader(new FileReader("positions"))) {
+
+      String line = null;
+      while ((line = reader.readLine()) != null ) {
+        String[] data = line.split(",");
+
+        double position_omoplate = Double.parseDouble(data[0]);
+        double position_shoulder = Double.parseDouble(data[2]);
+        double position_rotate = Double.parseDouble(data[4]);
+        double position_bicep = Double.parseDouble(data[6]);
+
+        rightArm.omoplate.moveTo(position_omoplate);
+        rightArm.shoulder.moveTo(position_shoulder);
+        rightArm.rotate.moveTo(position_rotate);
+        rightArm.bicep.moveTo(position_bicep);
+        sleep(60);
+      }
+
+      // Asks the user if they want to save the previewed gesture.
+      ProgramAB bot = (ProgramAB) Runtime.getService("chatBot");
+      bot.getResponse("SAVE");
+
+    } catch (Exception e) {
+      log.warn("Exception thrown while trying to read positions from a file");
+      e.printStackTrace();
+    }
+  }
+
+  /**
+   * Recompiles AIML files w/o AIMLIF
+   */
+  public void compileAiml() {
+    ProgramAB bot = (ProgramAB) Runtime.getService("chatBot");
+    bot.reloadSession(bot.getPath(), bot.getCurrentUserName(), bot.getCurrentBotName(), true);
+  }
+
+  /**
+   * Checks if gesture already exists.
+   * @param gestureName - only the name of the gesture w/o extension is needed.
+   */
+  public void checkGesture(String gestureName) {
+    String gestureMethod = mapGestureNameToPythonMethod(gestureName);
+    String gestureFilename = GESTURES_DIRECTORY + File.separator + gestureMethod + ".py";
+    File gestureFile = new File(gestureFilename);
+    ProgramAB bot = (ProgramAB) Runtime.getService("chatBot");
+    if (gestureFile.exists()) {
+      bot.getResponse("NAME ALREADY EXISTS");
+    } else {
+      bot.getResponse("NAME DOES NOT EXIST");
+    }
+  }
+
+  /**
+   * Creates a python gesture script with the specified name as parameter
+   * then modifies _inmoovGestures.aiml
+   * and sends a command to _inmoovChatbot.aiml that gesture is created.
+   *
+   * @param gestureName - name of the gesture script to be created.
+   * @returns - true on successful script creation or false if scripts name already exists or
+   * there was an exception while creating.
+   */
+  public boolean createGestureScript(String gestureName) {
+    String gestureMethod = mapGestureNameToPythonMethod(gestureName);
+    String gestureFilename = GESTURES_DIRECTORY + File.separator + gestureMethod + ".py";
+    File gestureFile = new File(gestureFilename);
+    ProgramAB bot = (ProgramAB) Runtime.getService("chatBot");
+
+    // Creates a new python gesture file
+    try (FileWriter gestureWriter = new FileWriter(gestureFile)) {
+      // print the first line of the python file
+      gestureWriter.write("def " + gestureMethod + "():\n");
+      // now for each servo, we should write out the approperiate moveTo
+      // statement
+
+      // Opens positions file for reading
+      try (BufferedReader positionsReader = new BufferedReader(new FileReader("positions"))) {
+        String line  = null;
+        while ((line = positionsReader.readLine()) != null ) {
+          String[] data = line.split(",");
+
+          double posOmoplate = Double.parseDouble(data[0]);
+          double posShoulder = Double.parseDouble(data[2]);
+          double posRotate = Double.parseDouble(data[4]);
+          double posBicep = Double.parseDouble(data[6]);
+
+          gestureWriter.write("  " + "i01.moveArm" + "(\"right\"," + posBicep + "," + posRotate + "," + posShoulder + "," + posOmoplate + ")\n");
+          gestureWriter.write("  " + "sleep(0.06)" + "\n");
+        }
+
+      } catch (IOException e) {
+        log.warn("Error reading positions file");
+        e.printStackTrace();
+        return false;
+      }
+
+      gestureWriter.write("  " + "sleep(0.3)" + "\n");
+      gestureWriter.write("  " + "i01.rightArm.rest()" + "\n");
+      gestureWriter.write("  " + "i01.rightHand.rest()" + "\n");
+
+    } catch (IOException e) {
+      log.warn("Error writing gestures file {}", gestureFilename);
+      e.printStackTrace();
+      return false;
+    }
+
+    // Stores gestures AIML file into memory
+    List<String> lines = new ArrayList<>();
+    try (BufferedReader aimlReader = new BufferedReader(new FileReader("InMoov\\chatbot\\bots\\en\\aiml\\_inmoovGestures.aiml"))) {
+      String in;
+      while ((in = aimlReader.readLine()) != null)
+        lines.add(in);
+      aimlReader.close();
+
+      lines.remove(lines.size() - 1);
+
+    } catch (IOException e) {
+      log.warn("Error reading aiml file {}", gestureFilename);
+      e.printStackTrace();
+      return false;
+    }
+
+    // Modifies gestures AIML file with a new gesture
+    try (FileWriter aimlWriter = new FileWriter("InMoov\\chatbot\\bots\\en\\aiml\\_inmoovGestures.aiml")) {
+      for (String line : lines)
+        aimlWriter.write(line + "\n");
+
+      aimlWriter.write("<category><pattern>" + gestureName.toUpperCase() + "</pattern>\n");
+      aimlWriter.write("<template><oob><mrl><service>python</service><method>exec</method><param>" + gestureName + "()</param></mrl></oob></template>\n");
+      aimlWriter.write("</category>\n");
+      aimlWriter.write("</aiml>\n");
+
+    } catch (IOException e) {
+      log.warn("Error writing aiml file {}", gestureFilename);
+      e.printStackTrace();
+      return false;
+    }
+
+    // Loads python script to memory
+    try {
+      python = (Python) Runtime.getService("python");
+      python.execFile(gestureFile.getAbsolutePath());
+    } catch (IOException e) {
+      log.warn("Error executing python file {}", gestureFile.getAbsoluteFile());
+      e.printStackTrace();
+      return false;
+    }
+
+    bot.getResponse("GESTURE CREATED");
+    return true;
+  }
+
+  /**
+   * Stores InMoovs right arm positions in a file
+   */
+  private void writePositionsToFile() {
+    // Buffer writer that writes InMoovs
+    // right arm positions to a file called 'positions' w/o extension
+    // in projects root dir
+    try (Writer writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream("positions"), StandardCharsets.UTF_8))) {
+
+      while (copyGestureRight) {
+
+        // OMOPLATE
+        writer.write(rightArm.omoplate.getCurrentPos() + ",");      // Position
+        writer.write(rightArm.omoplate.getAcceleration() + ",");    // Acceleration
+        // SHOULDER
+        writer.write(rightArm.shoulder.getCurrentPos() + ",");      // Position
+        writer.write(rightArm.shoulder.getAcceleration() + ",");    // Acceleration
+        // ROTATE
+        writer.write(rightArm.rotate.getCurrentPos() + ",");        // Position
+        writer.write(rightArm.rotate.getAcceleration() + ",");      // Acceleration
+        // BICEP
+        writer.write(rightArm.bicep.getCurrentPos() + ",");         // Position
+        writer.write(rightArm.bicep.getAcceleration() + "\n");      // Acceleration
+
+        // This is here to stop unnecessary position writing
+        sleep(60);
+      }
+
+    } catch (Exception e) {
+      log.warn("Exception thrown while trying to write positions to file");
+      e.printStackTrace();
+    }
+  }
+
+  /**************************************************************************
+   *                       BAIGIAMASIS DARBAS PABAIGA                       *
+   *************************************************************************/
 
   // TODO InMoovLife service
   public static boolean RobotIsTrackingSomething() {
@@ -441,11 +671,33 @@ public class InMoov extends Service {
       speakBlocking("stop copying gestures");
       if (openni != null) {
         openni.stopCapture();
+        openni = null;
         firstSkeleton = true;
       }
     }
 
     copyGesture = b;
+    return b;
+  }
+
+  public boolean copyGestureRight(boolean b) throws Exception {
+    log.info("copyGesture {}", b);
+    if (b) {
+      if (openni == null) {
+        openni = startOpenNIRight();
+      }
+      speakBlocking("copying gestures");
+      openni.startUserTracking();
+    } else {
+      speakBlocking("stop copying gestures");
+      if (openni != null) {
+        openni.stopCapture();
+        openni = null;
+        firstSkeleton = true;
+      }
+    }
+
+    copyGestureRight = b;
     return b;
   }
 
@@ -844,6 +1096,58 @@ public class InMoov extends Service {
             if (skeleton.rightShoulder.getAngleYZ() + openNiShouldersOffset >= 0) {
               rightArm.shoulder.moveTo(skeleton.rightShoulder.getAngleYZ() - 50);
             }
+          }
+        }
+
+      }
+    }
+
+    // TODO - route data appropriately
+    // rgb & depth image to OpenCV
+    // servos & depth image to gui (entire InMoov + references to servos)
+  }
+
+  /**
+   * Added arm rotations and disabled left arm
+   * @author Astijus Jenkus 2020/12/04
+   */
+  public void onOpenNIDataRight(OpenNiData data) {
+
+    if (data != null) {
+      Skeleton skeleton = data.skeleton;
+
+      if (firstSkeleton) {
+        speakBlocking("i see you");
+        firstSkeleton = false;
+      }
+
+      if (copyGestureRight) {
+        double rotationOffset = 45.0;
+        double rotation = Math.abs(
+                Math.toDegrees(
+                        Math.atan2(skeleton.rightShoulderMatrix.m21, skeleton.rightShoulderMatrix.m22)
+                )
+        );
+
+        if (rightArm != null) {
+
+          if (!Double.isNaN(skeleton.rightElbow.getAngleXY())) {
+            if (skeleton.rightElbow.getAngleXY() >= 0) {
+              rightArm.bicep.moveTo(skeleton.rightElbow.getAngleXY());
+            }
+          }
+          if (!Double.isNaN(skeleton.rightShoulder.getAngleXY())) {
+            if (skeleton.rightShoulder.getAngleXY() >= 0) {
+              rightArm.omoplate.moveTo(skeleton.rightShoulder.getAngleXY());
+            }
+          }
+          if (!Double.isNaN(skeleton.rightShoulder.getAngleYZ())) {
+            if (skeleton.rightShoulder.getAngleYZ() + openNiShouldersOffset >= 0) {
+              rightArm.shoulder.moveTo(skeleton.rightShoulder.getAngleYZ() - 50);
+            }
+          }
+          if (!Double.isNaN(rotation)){
+            rightArm.rotate.moveTo(rotation + rotationOffset);
           }
         }
 
@@ -1433,6 +1737,23 @@ public class InMoov extends Service {
       // "getSkeleton");
       // openni.addOpenNIData(this);
       subscribe(openni.getName(), "publishOpenNIData");
+    }
+    return openni;
+  }
+
+  public OpenNi startOpenNIRight() throws Exception {
+    if (openni == null) {
+      speakBlocking("starting kinect");
+      openni = (OpenNi) startPeer("openni");
+      pid = (Pid) startPeer("pid");
+
+      pid.setPID("kinect", 10.0, 0.0, 1.0);
+      pid.setMode("kinect", Pid.MODE_AUTOMATIC);
+      pid.setOutputRange("kinect", -1, 1);
+
+      pid.setControllerDirection("kinect", 0);
+
+      openni.addOpenNIData(this);
     }
     return openni;
   }

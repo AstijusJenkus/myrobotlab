@@ -39,4 +39,10 @@ public class Skeleton implements Serializable {
 
   public PVector leftFoot = new PVector();
 
+  /**
+   * Right shoulder rotation matrix
+   * @author Astijus Jenkus 2020/12/04
+   */
+  public PMatrix3D rightShoulderMatrix = new PMatrix3D();
+
 }

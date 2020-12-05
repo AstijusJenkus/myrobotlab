@@ -4,10 +4,12 @@
    	<resolvers>
    	  <chain name="public">
 	  	  	
+		<!-- BAIGIAMASIS DARBAS ASTIJUS JENKUS 2020/12/04 -->
 		<url name="public-remote">
-		  <ivy pattern="https://raw.githubusercontent.com/MyRobotLab/repo/{release}/[organisation]/[revision]/ivy.xml"/>
-		  <artifact pattern="https://raw.githubusercontent.com/MyRobotLab/repo/{release}/[organisation]/[revision]/[artifact].[ext]"/>
+		  <ivy pattern="https://raw.githubusercontent.com/AstijusJenkus/repo/{release}/[organisation]/[revision]/ivy.xml"/>
+		  <artifact pattern="https://raw.githubusercontent.com/AstijusJenkus/repo/{release}/[organisation]/[revision]/[artifact].[ext]"/>
 		</url>
+		<!-- BAIGIAMASIS DARBAS ASTIJUS JENKUS 2020/12/04 -->
 	  </chain>
 	</resolvers>
 </ivysettings>	

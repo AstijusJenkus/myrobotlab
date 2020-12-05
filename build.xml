@@ -636,26 +636,28 @@
 			<arg value="pull" />
 		</exec>
 	</target>
+	<!-- BAIGIAMASIS DARBAS ASTIJUS JENKUS 2020/12/04 -->
 	<target name="repoDoesNotExists" depends="repoCheck" if="git.clone">
-		<echo message="git clone --branch=${branch} https://github.com/MyRobotLab/repo.git ${repo}" />
+		<echo message="git clone --branch=${branch} https://github.com/AstijusJenkus/repo.git ${repo}" />
 		<exec executable="git">
 			<arg value="clone" />
-			<arg value="https://github.com/MyRobotLab/repo.git" />
+			<arg value="https://github.com/AstijusJenkus/repo.git" />
 			<arg value="${repo}" />
 		</exec>
 	</target>
 
 	<!-- TODO: Consider moving this ... and get rid of it , but it will require dep management -->
 	<target name="repoClone">
-		<echo message="git clone --depth=1 --branch=${branch} https://github.com/MyRobotLab/repo.git ${repo}" />
+		<echo message="git clone --depth=1 --branch=${branch} https://github.com/AstijusJenkus/repo.git ${repo}" />
 		<exec executable="git">
 			<arg value="clone" />
 			<arg value="--depth=1" />
 			<arg value="--branch=${branch}" />
-			<arg value="https://github.com/MyRobotLab/repo.git" />
+			<arg value="https://github.com/AstijusJenkus/repo.git" />
 			<arg value="${repo}" />
 		</exec>
 	</target>
+	<!-- BAIGIAMASIS DARBAS PABAIGA -->
 	<!-- =============== repo end  =============== -->
 	<!-- 
 		The following are "initial" myrobotlab dependencies - they get incorporated into myrobotlab.jar

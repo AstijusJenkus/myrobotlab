@@ -211,7 +211,7 @@ public class OpenNi extends Service // implements
   }
 
   public void addOpenNIData(Service service) {
-    addListener("publishOpenNIData", service.getName(), "onOpenNIData");
+    addListener("publishOpenNIData", service.getName(), "onOpenNIDataRight");
   }
 
   public void addRubySketchUpFrame(Skeleton skeleton, boolean singleFrame) {
@@ -408,6 +408,12 @@ public class OpenNi extends Service // implements
 
     // 3D matrix 4x4
     // context.getJointOrientationSkeleton(userId, joint, jointOrientation);
+    /**
+     * I assume joint orientation skeletons would have been here?
+     * So I'll just put mine here anyway ;)
+     * @author Astijus Jenkus 2020/12/04
+     */
+    context.getJointOrientationSkeleton(userId, SimpleOpenNIConstants.SKEL_RIGHT_SHOULDER, skeleton.rightShoulderMatrix);
 
     // ------- skeleton data build begin-------
     context.getJointPositionSkeleton(userId, SimpleOpenNIConstants.SKEL_HEAD, skeleton.head);

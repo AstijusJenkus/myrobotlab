@@ -198,6 +198,64 @@ public class InMoovEyelids extends Service {
     eyelidright.moveTo(eyelidrightPos);
     }
   }
+
+  /**
+   * Moves both eyelids to the same position
+   * @author Astijus Jenkus 2020/12/04
+   */
+  public void moveTo(double eyelidPos) {
+    if (log.isDebugEnabled()) {
+      log.debug(String.format("%s moveTo %d %d", getName(), eyelidPos));
+    }
+    if (eyelidleft != null) {
+      eyelidleft.moveTo(eyelidPos);
+    }
+    if (eyelidright != null) {
+      eyelidright.moveTo(eyelidPos);
+    }
+  }
+
+  /**
+   * gets minimum value from right eyelid
+   * @author Astijus Jenkus 2020/12/04
+   */
+  public double getMin() {
+    if (eyelidright != null)
+      return eyelidright.getMin();
+    return .0;
+  }
+
+  /**
+   * gets maximum value from right eyelid
+   * @author Astijus Jenkus 2020/12/04
+   */
+  public double getMax() {
+    if (eyelidright != null)
+      return eyelidright.getMax();
+    return .0;
+  }
+
+  /**
+   * gets current value from right eyelid
+   * @author Astijus Jenkus 2020/12/04
+   */
+  public double getCurrentPos() {
+    if (eyelidright != null)
+      eyelidright.getCurrentPos();
+    return .0;
+  }
+
+  /**
+   * sets minimum and maximum values to both eyelids
+   * @author Astijus Jenkus 2020/12/04
+   */
+  public void setMinMax(double min, double max) {
+    if (eyelidright != null)
+      eyelidright.setMinMax(min, max);
+    if (eyelidleft != null)
+      eyelidleft.setMinMax(min, max);
+  }
+
   
   public void moveToBlocking(double eyelidleftPos, double eyelidrightPos) {
     log.info(String.format("init " + getName() + "moveToBlocking "));
